@@ -1,0 +1,2329 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+    <title>Своя игра</title>
+    <style>
+        /* === RESET & GLOBAL === */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        html,
+        body {
+            height: 100%;
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            background: #0b0b14;
+            color: #f0f0f5;
+            font-size: 18px;
+            user-select: none;
+            overflow: hidden;
+        }
+        button {
+            font-family: inherit;
+            font-size: inherit;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: inherit;
+            padding: 0.4rem 1.2rem;
+            border-radius: 8px;
+            transition: background .15s, transform .1s, opacity .15s;
+        }
+        button:active {
+            transform: scale(0.96);
+        }
+        input,
+        select,
+        textarea {
+            font-family: inherit;
+            font-size: inherit;
+            background: #1e1e30;
+            color: #f0f0f5;
+            border: 2px solid #3a3a5a;
+            border-radius: 8px;
+            padding: 0.5rem 0.8rem;
+            width: 100%;
+            transition: border .2s;
+        }
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #ffd700;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #14141f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3a3a5a;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5a5a8a;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            background: #0b0b14;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        /* === BOARD VIEW === */
+        #boardView {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 0.8rem 1.2rem 0.8rem 1.2rem;
+            background: #0b0b14;
+            overflow: hidden;
+        }
+        .board-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.6rem 1.2rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 2px solid #1e1e30;
+            flex-shrink: 0;
+        }
+        .board-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 40px rgba(255, 215, 0, 0.15);
+        }
+        .board-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .board-controls button {
+            background: #1e1e30;
+            padding: 0.35rem 0.9rem;
+            font-size: 0.85rem;
+            border: 1px solid #3a3a5a;
+            border-radius: 6px;
+            color: #c0c0dd;
+        }
+        .board-controls button:hover {
+            background: #2e2e48;
+            border-color: #ffd700;
+            color: #fff;
+        }
+        .board-controls .btn-danger {
+            border-color: #8a2a3a;
+            color: #ff6b7a;
+        }
+        .board-controls .btn-danger:hover {
+            background: #3a1a2a;
+            border-color: #ff4a5a;
+        }
+
+        /* Scoreboard */
+        .scoreboard {
+            display: flex;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+            align-items: center;
+            flex-shrink: 0;
+            padding: 0.4rem 0;
+        }
+        .team-score {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: #14141f;
+            padding: 0.25rem 0.8rem 0.25rem 0.4rem;
+            border-radius: 40px;
+            border: 1px solid #2a2a44;
+        }
+        .team-score .team-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            padding: 0 0.3rem;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background .15s;
+            min-width: 40px;
+            text-align: center;
+        }
+        .team-score .team-name:hover {
+            background: #2a2a44;
+        }
+        .team-score .team-name-input {
+            font-size: 1.1rem;
+            font-weight: 600;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid #ffd700;
+            border-radius: 0;
+            padding: 0 0.2rem;
+            width: 80px;
+            text-align: center;
+            color: #f0f0f5;
+        }
+        .team-score .team-name-input:focus {
+            border-color: #ffd700;
+            outline: none;
+        }
+        .team-score .score-val {
+            font-size: 1.5rem;
+            font-weight: 700;
+            min-width: 50px;
+            text-align: center;
+            color: #ffd700;
+        }
+        .team-score .score-btn {
+            font-size: 1.2rem;
+            font-weight: 700;
+            padding: 0 0.4rem;
+            background: #1e1e30;
+            border-radius: 30px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #3a3a5a;
+            color: #a0a0c0;
+            transition: background .15s, border-color .15s;
+        }
+        .team-score .score-btn:hover {
+            background: #2e2e48;
+            border-color: #ffd700;
+            color: #fff;
+        }
+        .team-score .score-btn.plus {
+            color: #4caf50;
+        }
+        .team-score .score-btn.plus:hover {
+            background: #1a3a1a;
+            border-color: #4caf50;
+        }
+        .team-score .score-btn.minus {
+            color: #f44336;
+        }
+        .team-score .score-btn.minus:hover {
+            background: #3a1a1a;
+            border-color: #f44336;
+        }
+
+        /* Grid */
+        .grid-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.4rem 0;
+            min-height: 0;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            width: 100%;
+            max-width: 1300px;
+            aspect-ratio: 5 / 5.5;
+            max-height: 80vh;
+        }
+        .grid-cell {
+            background: #14142a;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #ffd700;
+            transition: background .2s, transform .1s, opacity .2s, border-color .2s;
+            border: 2px solid #2a2a4a;
+            position: relative;
+            cursor: pointer;
+            text-align: center;
+            padding: 0.2rem;
+            min-height: 50px;
+            word-break: break-word;
+            line-height: 1.2;
+        }
+        .grid-cell.category-cell {
+            background: #1a1a3a;
+            border-color: #3a3a6a;
+            color: #e0e0f5;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: default;
+            padding: 0.3rem 0.2rem;
+        }
+        .grid-cell.category-cell .cat-name {
+            flex: 1;
+            padding: 0 0.2rem;
+            pointer-events: none;
+        }
+        .grid-cell.category-cell .cat-edit-btn {
+            position: absolute;
+            right: 4px;
+            top: 4px;
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: opacity .2s;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 30px;
+            padding: 0 6px;
+            cursor: pointer;
+            pointer-events: auto;
+            color: #aaa;
+            line-height: 1.4;
+        }
+        .grid-cell.category-cell:hover .cat-edit-btn {
+            opacity: 1;
+        }
+        .grid-cell.category-cell .cat-edit-btn:hover {
+            color: #ffd700;
+            background: rgba(255, 215, 0, 0.15);
+        }
+        .grid-cell.category-cell .cat-input {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid #ffd700;
+            border-radius: 0;
+            padding: 0 0.2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-align: center;
+            color: #f0f0f5;
+            width: 100%;
+            pointer-events: auto;
+        }
+        .grid-cell.category-cell .cat-input:focus {
+            outline: none;
+            border-color: #ffaa00;
+        }
+
+        .grid-cell:not(.category-cell):hover {
+            background: #1e1e42;
+            border-color: #ffd700;
+            transform: scale(1.02);
+            z-index: 2;
+        }
+        .grid-cell:not(.category-cell).played {
+            opacity: 0.3;
+            background: #0a0a1a;
+            border-color: #1a1a2a;
+            cursor: default;
+            transform: none;
+            pointer-events: none;
+        }
+        .grid-cell:not(.category-cell).played .cell-value {
+            opacity: 0.2;
+        }
+        .grid-cell .cell-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #ffd700;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+        }
+        .grid-cell .cell-edit-icon {
+            position: absolute;
+            right: 4px;
+            bottom: 4px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity .2s;
+            color: #8888bb;
+            pointer-events: auto;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 30px;
+            padding: 0 6px;
+            line-height: 1.4;
+            cursor: pointer;
+        }
+        .grid-cell:not(.category-cell):hover .cell-edit-icon {
+            opacity: 1;
+        }
+        .grid-cell:not(.category-cell) .cell-edit-icon:hover {
+            color: #ffd700;
+            background: rgba(255, 215, 0, 0.15);
+        }
+        .grid-cell .cell-check {
+            position: absolute;
+            top: 4px;
+            left: 6px;
+            font-size: 0.9rem;
+            color: #4caf50;
+            opacity: 0;
+            transition: opacity .3s;
+        }
+        .grid-cell .cell-check.filled {
+            opacity: 1;
+        }
+
+        /* === EDITOR MODAL === */
+        #editorModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2000;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        #editorModal .editor-panel {
+            background: #14142a;
+            border: 2px solid #3a3a6a;
+            border-radius: 20px;
+            padding: 1.8rem 2rem;
+            max-width: 820px;
+            width: 100%;
+            max-height: 95vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.8);
+            position: relative;
+        }
+        #editorModal .editor-close {
+            position: absolute;
+            top: 12px;
+            right: 18px;
+            font-size: 2rem;
+            color: #8888bb;
+            cursor: pointer;
+            transition: color .2s, transform .2s;
+            background: none;
+            border: none;
+            padding: 0 8px;
+            line-height: 1;
+        }
+        #editorModal .editor-close:hover {
+            color: #fff;
+            transform: rotate(90deg);
+        }
+        #editorModal h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #ffd700;
+            letter-spacing: 1px;
+        }
+        .editor-row {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.8rem;
+        }
+        .editor-row>* {
+            flex: 1;
+            min-width: 120px;
+        }
+        .editor-row .full {
+            flex: 1 1 100%;
+        }
+        .editor-row label {
+            display: block;
+            font-size: 0.85rem;
+            color: #a0a0c0;
+            margin-bottom: 0.2rem;
+            font-weight: 500;
+        }
+        .editor-row select {
+            appearance: auto;
+        }
+        .editor-row .file-upload-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+        .editor-row .file-upload-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            font-size: 0;
+        }
+        .editor-row .file-upload-wrapper .file-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #1e1e30;
+            border: 2px solid #3a3a5a;
+            border-radius: 8px;
+            padding: 0.5rem 0.8rem;
+            color: #a0a0c0;
+            cursor: pointer;
+            transition: border .2s;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+        .editor-row .file-upload-wrapper .file-label:hover {
+            border-color: #ffd700;
+        }
+        .editor-row .file-upload-wrapper .file-label .fname {
+            color: #f0f0f5;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Mini progress table */
+        .mini-progress {
+            margin-top: 0.8rem;
+            border-top: 1px solid #2a2a4a;
+            padding-top: 0.8rem;
+        }
+        .mini-progress .mini-title {
+            font-size: 0.85rem;
+            color: #a0a0c0;
+            margin-bottom: 0.4rem;
+        }
+        .mini-progress .mini-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+            max-width: 300px;
+        }
+        .mini-progress .mini-cell {
+            aspect-ratio: 1;
+            border-radius: 4px;
+            background: #1a1a30;
+            border: 2px solid #2a2a44;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: border-color .2s, transform .1s;
+            color: #444;
+            min-height: 28px;
+        }
+        .mini-progress .mini-cell:hover {
+            transform: scale(1.08);
+            z-index: 2;
+        }
+        .mini-progress .mini-cell.filled {
+            background: #0a2a1a;
+            border-color: #2a6a3a;
+            color: #4caf50;
+        }
+        .mini-progress .mini-cell.empty {
+            background: #2a1a1a;
+            border-color: #5a2a2a;
+            color: #f44336;
+        }
+        .mini-progress .mini-cell.current {
+            border-color: #ffd700 !important;
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+        }
+        .mini-progress .mini-cell .mini-check {
+            font-size: 1rem;
+        }
+
+        /* === QUESTION SCREEN === */
+        #questionScreen {
+            padding: 1.5rem 2rem;
+            justify-content: flex-start;
+            background: #0b0b14;
+        }
+        .qs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            padding: 0.4rem 0 0.8rem 0;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+        }
+        .qs-header .qs-meta {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #a0a0c0;
+        }
+        .qs-header .qs-meta .qs-cat {
+            color: #ffd700;
+        }
+        .qs-header .qs-meta .qs-val {
+            color: #ffaa00;
+            background: #1a1a30;
+            padding: 0.1rem 1rem;
+            border-radius: 40px;
+            margin-left: 0.5rem;
+        }
+        .qs-header .qs-close-btn {
+            font-size: 2.2rem;
+            color: #8888bb;
+            cursor: pointer;
+            transition: color .2s;
+            background: none;
+            border: none;
+            padding: 0 10px;
+        }
+        .qs-header .qs-close-btn:hover {
+            color: #fff;
+        }
+
+        .qs-timer-wrap {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+            flex-shrink: 0;
+        }
+        .qs-timer {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+        .qs-timer svg {
+            transform: rotate(-90deg);
+            width: 80px;
+            height: 80px;
+        }
+        .qs-timer .timer-bg {
+            fill: none;
+            stroke: #1e1e30;
+            stroke-width: 6;
+        }
+        .qs-timer .timer-progress {
+            fill: none;
+            stroke: #4caf50;
+            stroke-width: 6;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.3s, stroke 0.3s;
+        }
+        .qs-timer .timer-progress.warning {
+            stroke: #ff4a4a;
+        }
+        .qs-timer .timer-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #f0f0f5;
+        }
+        .qs-timer .timer-text.warning {
+            color: #ff4a4a;
+        }
+
+        .qs-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 1200px;
+            gap: 1.2rem;
+            padding: 0.4rem 0;
+            min-height: 0;
+            overflow-y: auto;
+        }
+        .qs-question {
+            font-size: 2.8rem;
+            font-weight: 600;
+            text-align: center;
+            color: #f0f0f5;
+            line-height: 1.3;
+            max-width: 1000px;
+            padding: 0.2rem 0.5rem;
+            word-break: break-word;
+        }
+        .qs-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.8rem;
+            width: 100%;
+            max-width: 800px;
+        }
+        .qs-options .opt-btn {
+            background: #1a1a30;
+            border: 2px solid #3a3a5a;
+            border-radius: 14px;
+            padding: 0.8rem 1rem;
+            font-size: 1.4rem;
+            font-weight: 500;
+            color: #e0e0f0;
+            text-align: center;
+            transition: background .2s, border-color .2s, transform .1s;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            word-break: break-word;
+            cursor: default;
+        }
+        .qs-options .opt-btn:hover {
+            background: #222248;
+            border-color: #5a5a8a;
+        }
+        .qs-options .opt-btn.correct-reveal {
+            background: #0a3a1a;
+            border-color: #4caf50;
+            color: #8cff8c;
+            box-shadow: 0 0 30px rgba(76, 175, 80, 0.2);
+        }
+
+        .qs-answer-reveal {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.8rem;
+            width: 100%;
+            max-width: 800px;
+            animation: fadeInUp 0.5s ease;
+        }
+        .qs-answer-reveal .answer-text {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: #ffd700;
+            text-align: center;
+            word-break: break-word;
+            background: rgba(255, 215, 0, 0.06);
+            padding: 0.5rem 2rem;
+            border-radius: 16px;
+            border: 2px solid rgba(255, 215, 0, 0.2);
+        }
+        .qs-answer-reveal .answer-media {
+            max-width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+            max-height: 50vh;
+            object-fit: contain;
+        }
+        .qs-answer-reveal .answer-media iframe {
+            max-width: 100%;
+            border-radius: 12px;
+            aspect-ratio: 16 / 9;
+            width: 100%;
+            max-height: 50vh;
+            border: none;
+        }
+        .qs-answer-reveal .answer-media img {
+            max-width: 100%;
+            max-height: 50vh;
+            border-radius: 12px;
+            object-fit: contain;
+        }
+
+        .qs-actions {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 0.6rem 0;
+            flex-shrink: 0;
+        }
+        .qs-actions .btn-primary {
+            background: #ffd700;
+            color: #0b0b14;
+            font-weight: 700;
+            font-size: 1.3rem;
+            padding: 0.6rem 2rem;
+            border-radius: 40px;
+            transition: background .2s, transform .1s;
+            border: none;
+        }
+        .qs-actions .btn-primary:hover {
+            background: #ffed4a;
+            transform: scale(1.03);
+        }
+        .qs-actions .btn-secondary {
+            background: #1e1e30;
+            color: #a0a0c0;
+            border: 2px solid #3a3a5a;
+            font-weight: 600;
+            font-size: 1.1rem;
+            padding: 0.6rem 1.6rem;
+            border-radius: 40px;
+        }
+        .qs-actions .btn-secondary:hover {
+            background: #2e2e48;
+            border-color: #ffd700;
+            color: #fff;
+        }
+        .qs-actions .btn-score {
+            background: #1a2a3a;
+            border: 2px solid #3a5a7a;
+            color: #8ab4f8;
+            font-weight: 700;
+            font-size: 1.1rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: 40px;
+            min-width: 80px;
+        }
+        .qs-actions .btn-score:hover {
+            background: #2a3a5a;
+            border-color: #8ab4f8;
+            color: #fff;
+        }
+        .qs-actions .btn-score.team0 {
+            border-color: #f44336;
+            color: #ff6b7a;
+        }
+        .qs-actions .btn-score.team0:hover {
+            background: #3a1a1a;
+            border-color: #f44336;
+            color: #ff8a9a;
+        }
+        .qs-actions .btn-score.team1 {
+            border-color: #4caf50;
+            color: #7acc7a;
+        }
+        .qs-actions .btn-score.team1:hover {
+            background: #1a3a1a;
+            border-color: #4caf50;
+            color: #9aff9a;
+        }
+        .qs-actions .btn-score.team2 {
+            border-color: #ff9800;
+            color: #ffb74d;
+        }
+        .qs-actions .btn-score.team2:hover {
+            background: #3a2a1a;
+            border-color: #ff9800;
+            color: #ffcc80;
+        }
+
+        .qs-empty {
+            font-size: 2rem;
+            color: #666;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        /* === FINAL SCREEN === */
+        #finalScreen {
+            background: #0b0b14;
+            padding: 2rem;
+            justify-content: center;
+        }
+        .final-content {
+            text-align: center;
+            max-width: 900px;
+            animation: fadeInUp 0.8s ease;
+        }
+        .final-content .trophy {
+            font-size: 6rem;
+            margin-bottom: 0.2rem;
+        }
+        .final-content .winner-name {
+            font-size: 4.5rem;
+            font-weight: 800;
+            color: #ffd700;
+            text-shadow: 0 0 60px rgba(255, 215, 0, 0.25);
+            margin: 0.2rem 0;
+        }
+        .final-content .winner-score {
+            font-size: 2.8rem;
+            color: #e0e0f5;
+            margin-bottom: 0.8rem;
+        }
+        .final-content .winner-score span {
+            color: #ffd700;
+            font-weight: 700;
+        }
+        .final-content .final-rank {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            margin: 1rem auto;
+            max-width: 500px;
+            background: #14142a;
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            border: 1px solid #2a2a4a;
+        }
+        .final-content .final-rank .rank-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.4rem;
+            padding: 0.3rem 0;
+            border-bottom: 1px solid #1a1a30;
+        }
+        .final-content .final-rank .rank-row:last-child {
+            border-bottom: none;
+        }
+        .final-content .final-rank .rank-row .rank-pos {
+            color: #8888bb;
+            font-weight: 300;
+        }
+        .final-content .final-rank .rank-row .rank-name {
+            font-weight: 600;
+            color: #f0f0f5;
+        }
+        .final-content .final-rank .rank-row .rank-pts {
+            font-weight: 700;
+            color: #ffd700;
+        }
+        .final-content .final-rank .rank-row.winner-row .rank-name {
+            color: #ffd700;
+        }
+        .final-content .final-rank .rank-row.winner-row .rank-pts {
+            color: #ffd700;
+        }
+        .final-content .final-btn {
+            margin-top: 1.2rem;
+            background: #1e1e30;
+            border: 2px solid #3a3a5a;
+            color: #a0a0c0;
+            font-size: 1.3rem;
+            padding: 0.6rem 2.4rem;
+            border-radius: 40px;
+            transition: background .2s, border-color .2s;
+        }
+        .final-content .final-btn:hover {
+            background: #2e2e48;
+            border-color: #ffd700;
+            color: #fff;
+        }
+
+        /* === CONFETTI === */
+        .confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1001;
+            overflow: hidden;
+        }
+        .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            top: -20px;
+            animation: confettiFall linear forwards;
+        }
+
+        /* === ANIMATIONS === */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(0) rotate(0deg) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(110vh) rotate(720deg) scale(0.3);
+                opacity: 0;
+            }
+        }
+        @keyframes pulseGold {
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+            }
+            50% {
+                box-shadow: 0 0 60px rgba(255, 215, 0, 0.3);
+            }
+        }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 800px) {
+            body {
+                font-size: 14px;
+            }
+            .board-header h1 {
+                font-size: 1.4rem;
+            }
+            .grid-cell {
+                font-size: 1.2rem;
+                border-radius: 6px;
+                min-height: 36px;
+            }
+            .grid-cell.category-cell {
+                font-size: 0.8rem;
+            }
+            .grid-cell .cell-value {
+                font-size: 1.2rem;
+            }
+            .team-score .score-val {
+                font-size: 1.2rem;
+                min-width: 30px;
+            }
+            .team-score .team-name {
+                font-size: 0.9rem;
+            }
+            .qs-question {
+                font-size: 1.8rem;
+            }
+            .qs-options .opt-btn {
+                font-size: 1rem;
+                padding: 0.5rem;
+                min-height: 44px;
+            }
+            .qs-answer-reveal .answer-text {
+                font-size: 1.8rem;
+            }
+            .qs-timer {
+                width: 60px;
+                height: 60px;
+            }
+            .qs-timer svg {
+                width: 60px;
+                height: 60px;
+            }
+            .qs-timer .timer-text {
+                font-size: 1.3rem;
+            }
+            .final-content .winner-name {
+                font-size: 2.8rem;
+            }
+            .final-content .winner-score {
+                font-size: 2rem;
+            }
+            #editorModal .editor-panel {
+                padding: 1rem;
+            }
+            .editor-row {
+                gap: 0.5rem;
+            }
+            .mini-progress .mini-grid {
+                max-width: 200px;
+            }
+            .qs-header .qs-meta {
+                font-size: 1.2rem;
+            }
+            .scoreboard {
+                gap: 0.6rem;
+            }
+            .team-score {
+                padding: 0.15rem 0.5rem 0.15rem 0.2rem;
+            }
+            .board-controls button {
+                font-size: 0.7rem;
+                padding: 0.2rem 0.6rem;
+            }
+            .qs-actions .btn-primary {
+                font-size: 1rem;
+                padding: 0.4rem 1.2rem;
+            }
+            .qs-actions .btn-secondary {
+                font-size: 0.9rem;
+                padding: 0.4rem 1rem;
+            }
+            .grid-wrapper {
+                padding: 0.2rem 0;
+            }
+            .grid-container {
+                gap: 4px;
+                aspect-ratio: 5 / 5.8;
+            }
+            .final-content .final-rank .rank-row {
+                font-size: 1.1rem;
+            }
+        }
+        @media (max-width: 500px) {
+            body {
+                font-size: 12px;
+            }
+            .grid-container {
+                gap: 3px;
+                aspect-ratio: 5 / 6;
+            }
+            .grid-cell {
+                font-size: 0.9rem;
+                border-radius: 4px;
+                min-height: 28px;
+                border-width: 1px;
+            }
+            .grid-cell .cell-value {
+                font-size: 0.9rem;
+            }
+            .grid-cell.category-cell {
+                font-size: 0.65rem;
+            }
+            .grid-cell .cell-edit-icon {
+                font-size: 0.6rem;
+                right: 2px;
+                bottom: 2px;
+                padding: 0 4px;
+            }
+            .grid-cell.category-cell .cat-edit-btn {
+                font-size: 0.6rem;
+                right: 2px;
+                top: 2px;
+                padding: 0 4px;
+            }
+            .qs-question {
+                font-size: 1.3rem;
+            }
+            .qs-options {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.4rem;
+            }
+            .qs-options .opt-btn {
+                font-size: 0.8rem;
+                padding: 0.3rem;
+                min-height: 34px;
+                border-radius: 8px;
+            }
+            .qs-answer-reveal .answer-text {
+                font-size: 1.3rem;
+                padding: 0.3rem 1rem;
+            }
+            .qs-timer {
+                width: 48px;
+                height: 48px;
+            }
+            .qs-timer svg {
+                width: 48px;
+                height: 48px;
+            }
+            .qs-timer .timer-text {
+                font-size: 1rem;
+            }
+            .final-content .winner-name {
+                font-size: 2rem;
+            }
+            .final-content .winner-score {
+                font-size: 1.4rem;
+            }
+            .team-score .score-val {
+                font-size: 1rem;
+                min-width: 24px;
+            }
+            .team-score .team-name {
+                font-size: 0.75rem;
+            }
+            .team-score .score-btn {
+                width: 24px;
+                height: 24px;
+                font-size: 0.9rem;
+            }
+            .board-header h1 {
+                font-size: 1.1rem;
+            }
+            #editorModal .editor-panel {
+                padding: 0.8rem;
+                border-radius: 12px;
+            }
+            .editor-row label {
+                font-size: 0.7rem;
+            }
+            .editor-row input,
+            .editor-row select,
+            .editor-row textarea {
+                font-size: 0.8rem;
+                padding: 0.3rem 0.5rem;
+            }
+            .mini-progress .mini-grid {
+                max-width: 150px;
+            }
+            .mini-progress .mini-cell {
+                font-size: 0.7rem;
+                min-height: 20px;
+            }
+            .qs-header .qs-meta {
+                font-size: 0.9rem;
+            }
+            .qs-header .qs-close-btn {
+                font-size: 1.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== BOARD VIEW ===== -->
+    <div id="boardView">
+        <div class="board-header">
+            <h1>🎯 СВОЯ ИГРА</h1>
+            <div class="scoreboard" id="scoreboard">
+                <!-- Teams rendered by JS -->
+            </div>
+            <div class="board-controls">
+                <button id="resetBtn" class="btn-danger" title="Сбросить игру (вопросы остаются)">🔄 Сброс</button>
+                <button id="exportBtn" title="Экспорт данных JSON">📤 Экспорт</button>
+                <button id="importBtn" title="Импорт данных JSON">📥 Импорт</button>
+                <input type="file" id="importFileInput" accept=".json,application/json" style="display:none">
+            </div>
+        </div>
+        <div class="grid-wrapper">
+            <div class="grid-container" id="gridContainer">
+                <!-- Rendered by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== EDITOR MODAL ===== -->
+    <div id="editorModal" class="hidden">
+        <div class="editor-panel">
+            <button class="editor-close" id="editorCloseBtn">✕</button>
+            <h2>✏️ Редактор вопроса</h2>
+
+            <div class="editor-row">
+                <div>
+                    <label>Категория</label>
+                    <select id="editCategory"></select>
+                </div>
+                <div>
+                    <label>Стоимость</label>
+                    <select id="editValue"></select>
+                </div>
+            </div>
+
+            <div class="editor-row">
+                <div class="full">
+                    <label>Текст вопроса</label>
+                    <textarea id="editQuestion" rows="2" placeholder="Введите текст вопроса..."></textarea>
+                </div>
+            </div>
+
+            <div class="editor-row">
+                <div><label>Вариант A</label><input id="editOpt0" placeholder="Вариант A"></div>
+                <div><label>Вариант B</label><input id="editOpt1" placeholder="Вариант B"></div>
+            </div>
+            <div class="editor-row">
+                <div><label>Вариант C</label><input id="editOpt2" placeholder="Вариант C"></div>
+                <div><label>Вариант D</label><input id="editOpt3" placeholder="Вариант D"></div>
+            </div>
+
+            <div class="editor-row">
+                <div class="full">
+                    <label>Правильный ответ (скрыт до нажатия)</label>
+                    <input id="editCorrect" placeholder="Введите правильный ответ...">
+                </div>
+            </div>
+
+            <div class="editor-row">
+                <div>
+                    <label>Изображение (URL или файл)</label>
+                    <div class="file-upload-wrapper">
+                        <div class="file-label">
+                            <span>📎</span>
+                            <span class="fname" id="imageFileName">Выбрать файл</span>
+                            <input type="file" id="editImageFile" accept="image/*">
+                        </div>
+                    </div>
+                    <input id="editImageUrl" placeholder="Или введите URL..." style="margin-top:4px;">
+                </div>
+                <div>
+                    <label>YouTube видео (URL)</label>
+                    <input id="editVideo" placeholder="https://youtu.be/... или https://www.youtube.com/embed/...">
+                </div>
+            </div>
+
+            <div class="mini-progress">
+                <div class="mini-title">📊 Прогресс заполнения (▸ клик для перехода)</div>
+                <div class="mini-grid" id="miniGrid"></div>
+            </div>
+
+            <div style="display:flex; gap:0.8rem; margin-top:1rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn-secondary" id="editorCancelBtn" style="background:#1e1e30;border:2px solid #3a3a5a;color:#a0a0c0;padding:0.5rem 1.8rem;border-radius:40px;">Отмена</button>
+                <button class="btn-primary" id="editorSaveBtn" style="background:#ffd700;color:#0b0b14;font-weight:700;padding:0.5rem 2.2rem;border-radius:40px;">💾 Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== QUESTION SCREEN ===== -->
+    <div id="questionScreen" class="fullscreen hidden">
+        <div class="qs-header">
+            <div class="qs-meta">
+                <span class="qs-cat" id="qsCategory">Категория</span>
+                <span class="qs-val" id="qsValue">100</span>
+            </div>
+            <div class="qs-timer-wrap">
+                <div class="qs-timer" id="qsTimer">
+                    <svg viewBox="0 0 100 100">
+                        <circle class="timer-bg" cx="50" cy="50" r="42"/>
+                        <circle class="timer-progress" id="timerCircle" cx="50" cy="50" r="42"
+                        stroke-dasharray="263.89" stroke-dashoffset="0"/>
+                    </svg>
+                    <div class="timer-text" id="timerText">60</div>
+                </div>
+                <button class="qs-close-btn" id="qsCloseBtn">✕</button>
+            </div>
+        </div>
+
+        <div class="qs-body" id="qsBody">
+            <div class="qs-question" id="qsQuestion">Вопрос</div>
+            <div class="qs-options" id="qsOptions"></div>
+            <div class="qs-answer-reveal hidden" id="qsReveal">
+                <div class="answer-text" id="qsCorrectText">Правильный ответ</div>
+                <div class="answer-media" id="qsMedia"></div>
+            </div>
+            <div class="qs-actions" id="qsActions">
+                <button class="btn-primary" id="qsShowAnswerBtn">📢 Показать ответ</button>
+                <button class="btn-secondary" id="qsBackBtn">← Назад к полю</button>
+            </div>
+            <div class="qs-empty hidden" id="qsEmpty">❓ Вопрос не заполнен</div>
+        </div>
+    </div>
+
+    <!-- ===== FINAL SCREEN ===== -->
+    <div id="finalScreen" class="fullscreen hidden">
+        <div class="final-content" id="finalContent">
+            <div class="trophy">🏆</div>
+            <div class="winner-name" id="winnerName">Победитель</div>
+            <div class="winner-score">Счёт: <span id="winnerScore">0</span></div>
+            <div class="final-rank" id="finalRank"></div>
+            <button class="final-btn" id="finalBackBtn">← Вернуться к полю</button>
+        </div>
+        <div class="confetti-container" id="confettiContainer"></div>
+    </div>
+
+    <script>
+        // ============================================================
+        //  DATA
+        // ============================================================
+        const DEFAULT_CATEGORIES = ['Категория 1', 'Категория 2', 'Категория 3', 'Категория 4', 'Категория 5'];
+        const VALUES = [100, 200, 300, 400, 500];
+        const TOTAL_CELLS = 25;
+        const STORAGE_KEY = 'svoya_igra_data';
+
+        let data = {
+            categories: [...DEFAULT_CATEGORIES],
+            // questions: { '0-0': { text, options:[], correct, image, video, played } }
+            questions: {},
+            teams: [
+                { name: 'Команда 1', score: 0 },
+                { name: 'Команда 2', score: 0 },
+                { name: 'Команда 3', score: 0 },
+            ],
+        };
+
+        // ============================================================
+        //  STATE
+        // ============================================================
+        let currentCell = { catIdx: 0, valIdx: 0 }; // for editor
+        let timerInterval = null;
+        let timerSeconds = 60;
+        let timerRunning = false;
+        let timerStopped = false;
+        let questionRevealed = false;
+        let currentQuestionData = null;
+        let isFinalShown = false;
+
+        // ============================================================
+        //  DOM refs
+        // ============================================================
+        const $ = (s) => document.querySelector(s);
+        const $$ = (s) => document.querySelectorAll(s);
+
+        const gridContainer = $('#gridContainer');
+        const scoreboard = $('#scoreboard');
+        const editorModal = $('#editorModal');
+        const editorCloseBtn = $('#editorCloseBtn');
+        const editorCancelBtn = $('#editorCancelBtn');
+        const editorSaveBtn = $('#editorSaveBtn');
+        const editCategory = $('#editCategory');
+        const editValue = $('#editValue');
+        const editQuestion = $('#editQuestion');
+        const editOpt0 = $('#editOpt0');
+        const editOpt1 = $('#editOpt1');
+        const editOpt2 = $('#editOpt2');
+        const editOpt3 = $('#editOpt3');
+        const editCorrect = $('#editCorrect');
+        const editImageUrl = $('#editImageUrl');
+        const editImageFile = $('#editImageFile');
+        const imageFileName = $('#imageFileName');
+        const editVideo = $('#editVideo');
+        const miniGrid = $('#miniGrid');
+
+        const questionScreen = $('#questionScreen');
+        const qsCategory = $('#qsCategory');
+        const qsValue = $('#qsValue');
+        const qsQuestion = $('#qsQuestion');
+        const qsOptions = $('#qsOptions');
+        const qsReveal = $('#qsReveal');
+        const qsCorrectText = $('#qsCorrectText');
+        const qsMedia = $('#qsMedia');
+        const qsActions = $('#qsActions');
+        const qsEmpty = $('#qsEmpty');
+        const qsShowAnswerBtn = $('#qsShowAnswerBtn');
+        const qsBackBtn = $('#qsBackBtn');
+        const qsCloseBtn = $('#qsCloseBtn');
+        const timerCircle = $('#timerCircle');
+        const timerText = $('#timerText');
+
+        const finalScreen = $('#finalScreen');
+        const finalContent = $('#finalContent');
+        const winnerName = $('#winnerName');
+        const winnerScore = $('#winnerScore');
+        const finalRank = $('#finalRank');
+        const finalBackBtn = $('#finalBackBtn');
+        const confettiContainer = $('#confettiContainer');
+
+        const resetBtn = $('#resetBtn');
+        const exportBtn = $('#exportBtn');
+        const importBtn = $('#importBtn');
+        const importFileInput = $('#importFileInput');
+
+        // ============================================================
+        //  HELPERS
+        // ============================================================
+        function cellKey(catIdx, valIdx) { return catIdx + '-' + valIdx; }
+
+        function getQuestion(catIdx, valIdx) {
+            const key = cellKey(catIdx, valIdx);
+            return data.questions[key] || null;
+        }
+
+        function setQuestion(catIdx, valIdx, q) {
+            const key = cellKey(catIdx, valIdx);
+            if (q) {
+                data.questions[key] = q;
+            } else {
+                delete data.questions[key];
+            }
+            saveData();
+        }
+
+        function isFilled(catIdx, valIdx) {
+            const q = getQuestion(catIdx, valIdx);
+            return q && q.text && q.text.trim().length > 0;
+        }
+
+        function isPlayed(catIdx, valIdx) {
+            const q = getQuestion(catIdx, valIdx);
+            return q && q.played === true;
+        }
+
+        function allPlayed() {
+            for (let c = 0; c < 5; c++) {
+                for (let v = 0; v < 5; v++) {
+                    if (!isPlayed(c, v)) return false;
+                }
+            }
+            return true;
+        }
+
+        function getTeamScores() {
+            return data.teams.map(t => t.score);
+        }
+
+        function getTeamNames() {
+            return data.teams.map(t => t.name);
+        }
+
+        // ============================================================
+        //  SAVE / LOAD
+        // ============================================================
+        function saveData() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            } catch (e) { /* ignore */ }
+        }
+
+        function loadData() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    // Merge with defaults
+                    data.categories = parsed.categories || DEFAULT_CATEGORIES;
+                    data.questions = parsed.questions || {};
+                    data.teams = parsed.teams || [
+                        { name: 'Команда 1', score: 0 },
+                        { name: 'Команда 2', score: 0 },
+                        { name: 'Команда 3', score: 0 },
+                    ];
+                    // ensure each team has name and score
+                    data.teams = data.teams.map((t, i) => ({
+                        name: t.name || ('Команда ' + (i + 1)),
+                        score: typeof t.score === 'number' ? t.score : 0
+                    }));
+                    while (data.teams.length < 3) {
+                        data.teams.push({ name: 'Команда ' + (data.teams.length + 1), score: 0 });
+                    }
+                    return true;
+                }
+            } catch (e) { /* ignore */ }
+            return false;
+        }
+
+        function resetGame(keepQuestions = true) {
+            const qs = keepQuestions ? data.questions : {};
+            // mark all as not played, keep questions
+            for (const key in qs) {
+                qs[key].played = false;
+            }
+            data.questions = qs;
+            data.teams.forEach(t => t.score = 0);
+            saveData();
+            renderAll();
+            closeAllScreens();
+        }
+
+        function exportData() {
+            return JSON.stringify(data, null, 2);
+        }
+
+        function importData(json) {
+            try {
+                const parsed = JSON.parse(json);
+                if (!parsed.categories || !parsed.questions || !parsed.teams) {
+                    throw new Error('Invalid data structure');
+                }
+                data.categories = parsed.categories;
+                data.questions = parsed.questions;
+                data.teams = parsed.teams;
+                // ensure teams have name and score
+                data.teams = data.teams.map((t, i) => ({
+                    name: t.name || ('Команда ' + (i + 1)),
+                    score: typeof t.score === 'number' ? t.score : 0
+                }));
+                while (data.teams.length < 3) {
+                    data.teams.push({ name: 'Команда ' + (data.teams.length + 1), score: 0 });
+                }
+                saveData();
+                renderAll();
+                closeAllScreens();
+                return true;
+            } catch (e) {
+                alert('Ошибка импорта: ' + e.message);
+                return false;
+            }
+        }
+
+        // ============================================================
+        //  RENDER
+        // ============================================================
+        function renderScoreboard() {
+            let html = '';
+            data.teams.forEach((t, idx) => {
+                const colors = ['#f44336', '#4caf50', '#ff9800'];
+                const borderColor = colors[idx % colors.length];
+                html += `
+                    <div class="team-score" style="border-color:${borderColor}44;">
+                        <span class="team-name" data-team="${idx}" title="Кликните чтобы изменить имя">${t.name}</span>
+                        <span class="score-val">${t.score}</span>
+                        <button class="score-btn minus" data-team="${idx}" data-delta="-1">−</button>
+                        <button class="score-btn plus" data-team="${idx}" data-delta="1">+</button>
+                    </div>
+                `;
+            });
+            scoreboard.innerHTML = html;
+
+            // team name click to edit
+            scoreboard.querySelectorAll('.team-name').forEach(el => {
+                el.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const idx = parseInt(this.dataset.team);
+                    const current = data.teams[idx].name;
+                    const input = document.createElement('input');
+                    input.className = 'team-name-input';
+                    input.value = current;
+                    this.replaceWith(input);
+                    input.focus();
+                    input.select();
+                    input.addEventListener('blur', function() {
+                        const val = this.value.trim() || ('Команда ' + (idx + 1));
+                        data.teams[idx].name = val;
+                        saveData();
+                        renderScoreboard();
+                    });
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') this.blur();
+                        if (e.key === 'Escape') this.blur();
+                    });
+                });
+            });
+
+            // score buttons
+            scoreboard.querySelectorAll('.score-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const teamIdx = parseInt(this.dataset.team);
+                    const delta = parseInt(this.dataset.delta);
+                    data.teams[teamIdx].score = Math.max(0, data.teams[teamIdx].score + delta);
+                    saveData();
+                    renderScoreboard();
+                });
+            });
+        }
+
+        function renderGrid() {
+            let html = '';
+            // Categories row
+            html += '<div class="grid-cell category-cell" style="grid-column:1/6;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;background:transparent;border:none;padding:0;cursor:default;">';
+            for (let c = 0; c < 5; c++) {
+                const cat = data.categories[c] || ('Категория ' + (c + 1));
+                html += `
+                    <div class="grid-cell category-cell" style="border-color:#3a3a6a;background:#1a1a3a;border-radius:8px;padding:0.2rem;position:relative;cursor:default;min-height:40px;">
+                        <span class="cat-name">${cat}</span>
+                        <span class="cat-edit-btn" data-cat="${c}" title="Редактировать категорию">✏️</span>
+                    </div>
+                `;
+            }
+            html += '</div>';
+
+            // Question cells
+            for (let v = 0; v < 5; v++) {
+                for (let c = 0; c < 5; c++) {
+                    const filled = isFilled(c, v);
+                    const played = isPlayed(c, v);
+                    const val = VALUES[v];
+                    const cls = 'grid-cell' + (played ? ' played' : '');
+                    const checkMark = filled ? '✓' : '';
+                    const checkCls = 'cell-check' + (filled ? ' filled' : '');
+                    html += `
+                        <div class="${cls}" data-cat="${c}" data-val="${v}" data-value="${val}">
+                            <span class="cell-value">${played ? '✓' : val}</span>
+                            <span class="${checkCls}">${checkMark}</span>
+                            <span class="cell-edit-icon" data-cat="${c}" data-val="${v}" title="Редактировать вопрос">✏️</span>
+                        </div>
+                    `;
+                }
+            }
+            gridContainer.innerHTML = html;
+
+            // Category edit
+            gridContainer.querySelectorAll('.cat-edit-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const idx = parseInt(this.dataset.cat);
+                    const current = data.categories[idx] || '';
+                    const input = document.createElement('input');
+                    input.className = 'cat-input';
+                    input.value = current;
+                    const parent = this.parentElement;
+                    const nameSpan = parent.querySelector('.cat-name');
+                    nameSpan.replaceWith(input);
+                    this.style.display = 'none';
+                    input.focus();
+                    input.select();
+                    input.addEventListener('blur', function() {
+                        const val = this.value.trim() || ('Категория ' + (idx + 1));
+                        data.categories[idx] = val;
+                        saveData();
+                        renderGrid();
+                        renderMiniGrid();
+                    });
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') this.blur();
+                        if (e.key === 'Escape') this.blur();
+                    });
+                });
+            });
+
+            // Click on cell -> open question screen
+            gridContainer.querySelectorAll('.grid-cell:not(.category-cell)').forEach(cell => {
+                cell.addEventListener('click', function(e) {
+                    if (e.target.closest('.cell-edit-icon')) return;
+                    const catIdx = parseInt(this.dataset.cat);
+                    const valIdx = parseInt(this.dataset.val);
+                    if (isPlayed(catIdx, valIdx)) return;
+                    openQuestionScreen(catIdx, valIdx);
+                });
+                cell.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    const catIdx = parseInt(this.dataset.cat);
+                    const valIdx = parseInt(this.dataset.val);
+                    openEditor(catIdx, valIdx);
+                });
+                // Edit icon
+                cell.querySelector('.cell-edit-icon')?.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const catIdx = parseInt(this.dataset.cat);
+                    const valIdx = parseInt(this.dataset.val);
+                    openEditor(catIdx, valIdx);
+                });
+            });
+        }
+
+        function renderMiniGrid() {
+            let html = '';
+            for (let v = 0; v < 5; v++) {
+                for (let c = 0; c < 5; c++) {
+                    const filled = isFilled(c, v);
+                    const played = isPlayed(c, v);
+                    const isCurrent = (currentCell.catIdx === c && currentCell.valIdx === v);
+                    let cls = 'mini-cell';
+                    if (filled) cls += ' filled';
+                    else cls += ' empty';
+                    if (isCurrent) cls += ' current';
+                    if (played) cls += ' played';
+                    const label = filled ? '✓' : '✗';
+                    html += `
+                        <div class="${cls}" data-cat="${c}" data-val="${v}" title="${data.categories[c] || 'Кат.'} ${VALUES[v]}">
+                            <span class="mini-check">${label}</span>
+                        </div>
+                    `;
+                }
+            }
+            miniGrid.innerHTML = html;
+
+            miniGrid.querySelectorAll('.mini-cell').forEach(el => {
+                el.addEventListener('click', function() {
+                    const catIdx = parseInt(this.dataset.cat);
+                    const valIdx = parseInt(this.dataset.val);
+                    // Save current before switching
+                    saveCurrentEditor();
+                    currentCell.catIdx = catIdx;
+                    currentCell.valIdx = valIdx;
+                    loadIntoEditor(catIdx, valIdx);
+                    renderMiniGrid();
+                });
+            });
+        }
+
+        function renderAll() {
+            renderScoreboard();
+            renderGrid();
+            renderMiniGrid();
+            updateEditorDropdowns();
+            checkFinal();
+        }
+
+        // ============================================================
+        //  EDITOR
+        // ============================================================
+        function updateEditorDropdowns() {
+            // Categories
+            const catSel = editCategory;
+            catSel.innerHTML = '';
+            data.categories.forEach((cat, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.textContent = cat;
+                catSel.appendChild(opt);
+            });
+            // Values
+            const valSel = editValue;
+            valSel.innerHTML = '';
+            VALUES.forEach((v, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.textContent = v;
+                valSel.appendChild(opt);
+            });
+        }
+
+        function loadIntoEditor(catIdx, valIdx) {
+            const q = getQuestion(catIdx, valIdx) || { text: '', options: ['', '', '', ''], correct: '', image: '', video: '' };
+            editCategory.value = catIdx;
+            editValue.value = valIdx;
+            editQuestion.value = q.text || '';
+            editOpt0.value = (q.options && q.options[0]) || '';
+            editOpt1.value = (q.options && q.options[1]) || '';
+            editOpt2.value = (q.options && q.options[2]) || '';
+            editOpt3.value = (q.options && q.options[3]) || '';
+            editCorrect.value = q.correct || '';
+            editImageUrl.value = q.image || '';
+            editVideo.value = q.video || '';
+            imageFileName.textContent = q.image && q.image.startsWith('data:') ? '📷 (загружено)' : 'Выбрать файл';
+            currentCell.catIdx = catIdx;
+            currentCell.valIdx = valIdx;
+            renderMiniGrid();
+        }
+
+        function saveCurrentEditor() {
+            const catIdx = parseInt(editCategory.value);
+            const valIdx = parseInt(editValue.value);
+            const text = editQuestion.value.trim();
+            const options = [editOpt0.value.trim(), editOpt1.value.trim(), editOpt2.value.trim(), editOpt3.value.trim()];
+            const correct = editCorrect.value.trim();
+            const image = editImageUrl.value.trim();
+            const video = editVideo.value.trim();
+
+            if (!text && !correct && options.every(o => !o) && !image && !video) {
+                // empty - remove question
+                setQuestion(catIdx, valIdx, null);
+                return;
+            }
+
+            const q = {
+                text,
+                options,
+                correct,
+                image,
+                video,
+                played: false,
+            };
+            // preserve played status
+            const existing = getQuestion(catIdx, valIdx);
+            if (existing && existing.played) q.played = true;
+
+            setQuestion(catIdx, valIdx, q);
+        }
+
+        function openEditor(catIdx, valIdx) {
+            closeAllScreens(false);
+            loadIntoEditor(catIdx, valIdx);
+            editorModal.classList.remove('hidden');
+            // if question is played, warn
+            if (isPlayed(catIdx, valIdx)) {
+                // allow editing but note it's played
+            }
+            renderMiniGrid();
+        }
+
+        function closeEditor() {
+            saveCurrentEditor();
+            editorModal.classList.add('hidden');
+            renderAll();
+        }
+
+        // ============================================================
+        //  QUESTION SCREEN
+        // ============================================================
+        function openQuestionScreen(catIdx, valIdx) {
+            const q = getQuestion(catIdx, valIdx);
+            if (!q || !q.text || !q.text.trim()) {
+                // show empty state with edit button
+                qsEmpty.classList.remove('hidden');
+                qsQuestion.classList.add('hidden');
+                qsOptions.classList.add('hidden');
+                qsReveal.classList.add('hidden');
+                qsActions.querySelector('#qsShowAnswerBtn').classList.add('hidden');
+                qsActions.querySelector('#qsBackBtn').classList.remove('hidden');
+                qsCategory.textContent = data.categories[catIdx] || 'Категория';
+                qsValue.textContent = VALUES[valIdx];
+                // show edit button
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn-primary';
+                editBtn.textContent = '✏️ Редактировать вопрос';
+                editBtn.style.marginTop = '1rem';
+                editBtn.onclick = () => { closeQuestionScreen();
+                    openEditor(catIdx, valIdx); };
+                const emptyDiv = qsEmpty;
+                emptyDiv.innerHTML = '❓ Вопрос не заполнен<br><br>';
+                emptyDiv.appendChild(editBtn);
+                questionScreen.classList.remove('hidden');
+                currentQuestionData = { catIdx, valIdx, q: null };
+                return;
+            }
+
+            qsEmpty.classList.add('hidden');
+            qsQuestion.classList.remove('hidden');
+            qsOptions.classList.remove('hidden');
+            qsReveal.classList.add('hidden');
+            qsActions.querySelector('#qsShowAnswerBtn').classList.remove('hidden');
+            qsActions.querySelector('#qsBackBtn').classList.remove('hidden');
+
+            qsCategory.textContent = data.categories[catIdx] || 'Категория';
+            qsValue.textContent = VALUES[valIdx];
+            qsQuestion.textContent = q.text;
+
+            // Options
+            const optContainer = qsOptions;
+            optContainer.innerHTML = '';
+            const opts = q.options || ['', '', '', ''];
+            opts.forEach((opt, idx) => {
+                const btn = document.createElement('div');
+                btn.className = 'opt-btn';
+                btn.textContent = opt || ('—');
+                if (!opt) btn.style.opacity = '0.3';
+                btn.dataset.idx = idx;
+                optContainer.appendChild(btn);
+            });
+
+            // Reset reveal
+            qsReveal.classList.add('hidden');
+            qsMedia.innerHTML = '';
+            qsCorrectText.textContent = '';
+
+            // Show answer button
+            qsShowAnswerBtn.textContent = '📢 Показать ответ';
+            qsShowAnswerBtn.onclick = () => revealAnswer(catIdx, valIdx);
+
+            // Back button
+            qsBackBtn.onclick = closeQuestionScreen;
+
+            // Close button
+            qsCloseBtn.onclick = closeQuestionScreen;
+
+            questionRevealed = false;
+            currentQuestionData = { catIdx, valIdx, q };
+
+            questionScreen.classList.remove('hidden');
+
+            // Timer
+            startTimer();
+
+            // Remove scoring buttons if any
+            document.querySelectorAll('.qs-actions .btn-score').forEach(el => el.remove());
+            // Remove any extra buttons
+        }
+
+        function revealAnswer(catIdx, valIdx) {
+            if (questionRevealed) return;
+            const q = getQuestion(catIdx, valIdx);
+            if (!q) return;
+            questionRevealed = true;
+            stopTimer();
+
+            // Hide options
+            qsOptions.classList.add('hidden');
+
+            // Show correct answer
+            qsReveal.classList.remove('hidden');
+            qsCorrectText.textContent = q.correct || 'Правильный ответ не указан';
+
+            // Media
+            const mediaContainer = qsMedia;
+            mediaContainer.innerHTML = '';
+            if (q.video && q.video.trim()) {
+                const url = q.video.trim();
+                let embedUrl = url;
+                if (url.includes('youtu.be/')) {
+                    const id = url.split('youtu.be/')[1]?.split('?')[0];
+                    if (id) embedUrl = 'https://www.youtube.com/embed/' + id;
+                } else if (url.includes('watch?v=')) {
+                    const id = url.split('v=')[1]?.split('&')[0];
+                    if (id) embedUrl = 'https://www.youtube.com/embed/' + id;
+                } else if (url.includes('/embed/')) {
+                    embedUrl = url;
+                }
+                const iframe = document.createElement('iframe');
+                iframe.src = embedUrl;
+                iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+                iframe.allowFullscreen = true;
+                mediaContainer.appendChild(iframe);
+            } else if (q.image && q.image.trim()) {
+                const img = document.createElement('img');
+                img.src = q.image.trim();
+                img.alt = 'Изображение к вопросу';
+                img.onerror = () => { img.style.display = 'none'; };
+                mediaContainer.appendChild(img);
+            }
+
+            // Mark as played
+            q.played = true;
+            setQuestion(catIdx, valIdx, q);
+            renderGrid();
+            renderMiniGrid();
+
+            // Change button
+            qsShowAnswerBtn.textContent = '✅ Ответ показан';
+            qsShowAnswerBtn.disabled = true;
+            qsShowAnswerBtn.style.opacity = '0.5';
+            qsShowAnswerBtn.onclick = null;
+
+            // Show scoring buttons
+            const actions = qsActions;
+            // Remove old score buttons
+            document.querySelectorAll('.qs-actions .btn-score').forEach(el => el.remove());
+
+            const scoreLabel = document.createElement('span');
+            scoreLabel.textContent = 'Начислить очки: ';
+            scoreLabel.style.fontSize = '1.2rem';
+            scoreLabel.style.color = '#a0a0c0';
+            scoreLabel.style.marginRight = '0.3rem';
+            actions.appendChild(scoreLabel);
+
+            const val = VALUES[valIdx];
+            data.teams.forEach((t, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-score team' + idx;
+                btn.textContent = `${t.name} +${val}`;
+                btn.onclick = () => {
+                    data.teams[idx].score += val;
+                    saveData();
+                    renderScoreboard();
+                    // visual feedback
+                    btn.style.background = '#2a4a3a';
+                    btn.style.borderColor = '#4caf50';
+                    setTimeout(() => {
+                        btn.style.background = '';
+                        btn.style.borderColor = '';
+                    }, 300);
+                };
+                actions.appendChild(btn);
+            });
+
+            // Also minus button
+            const minusLabel = document.createElement('span');
+            minusLabel.textContent = '  ';
+            actions.appendChild(minusLabel);
+            data.teams.forEach((t, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-score team' + idx;
+                btn.textContent = `${t.name} −${val}`;
+                btn.style.borderColor = '#6a3a3a';
+                btn.style.color = '#ff6b7a';
+                btn.onclick = () => {
+                    data.teams[idx].score = Math.max(0, data.teams[idx].score - val);
+                    saveData();
+                    renderScoreboard();
+                    btn.style.background = '#3a1a1a';
+                    btn.style.borderColor = '#f44336';
+                    setTimeout(() => {
+                        btn.style.background = '';
+                        btn.style.borderColor = '';
+                    }, 300);
+                };
+                actions.appendChild(btn);
+            });
+
+            checkFinal();
+        }
+
+        function startTimer() {
+            stopTimer();
+            timerSeconds = 60;
+            timerRunning = true;
+            timerStopped = false;
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                if (timerStopped) return;
+                timerSeconds--;
+                updateTimerDisplay();
+                if (timerSeconds <= 0) {
+                    stopTimer();
+                    timerText.textContent = '0';
+                    timerText.classList.add('warning');
+                    // Auto reveal?
+                    // Just stop, user can still click show answer
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            timerRunning = false;
+            timerStopped = true;
+        }
+
+        function updateTimerDisplay() {
+            const circumference = 2 * Math.PI * 42; // 263.89
+            const progress = Math.max(0, timerSeconds / 60);
+            const offset = circumference * (1 - progress);
+            timerCircle.style.strokeDashoffset = offset;
+            timerText.textContent = Math.max(0, Math.ceil(timerSeconds));
+
+            const isWarning = timerSeconds <= 10;
+            timerCircle.classList.toggle('warning', isWarning);
+            timerText.classList.toggle('warning', isWarning);
+
+            if (timerSeconds <= 0) {
+                timerCircle.style.stroke = '#ff4a4a';
+                timerText.textContent = '0';
+            } else {
+                timerCircle.style.stroke = isWarning ? '#ff4a4a' : '#4caf50';
+            }
+        }
+
+        function closeQuestionScreen() {
+            stopTimer();
+            questionScreen.classList.add('hidden');
+            // reset actions
+            qsActions.querySelectorAll('.btn-score').forEach(el => el.remove());
+            qsShowAnswerBtn.disabled = false;
+            qsShowAnswerBtn.style.opacity = '1';
+            qsShowAnswerBtn.textContent = '📢 Показать ответ';
+            qsOptions.classList.remove('hidden');
+            qsReveal.classList.add('hidden');
+            qsMedia.innerHTML = '';
+            qsEmpty.classList.add('hidden');
+            qsQuestion.classList.remove('hidden');
+            // Remove extra elements
+            const extra = qsActions.querySelectorAll('span');
+            extra.forEach(el => {
+                if (el.textContent.includes('Начислить') || el.textContent.includes(' ')) el.remove();
+            });
+            renderAll();
+            checkFinal();
+        }
+
+        // ============================================================
+        //  FINAL SCREEN
+        // ============================================================
+        function checkFinal() {
+            if (allPlayed() && !isFinalShown) {
+                isFinalShown = true;
+                showFinalScreen();
+            }
+        }
+
+        function showFinalScreen() {
+            const sorted = data.teams.map((t, idx) => ({ ...t, idx }));
+            sorted.sort((a, b) => b.score - a.score);
+            const topScore = sorted[0].score;
+            const winners = sorted.filter(t => t.score === topScore);
+
+            winnerName.textContent = winners.map(t => t.name).join(' & ');
+            winnerScore.textContent = topScore;
+
+            let rankHtml = '';
+            sorted.forEach((t, idx) => {
+                const isWinner = t.score === topScore;
+                const cls = 'rank-row' + (isWinner ? ' winner-row' : '');
+                const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1) + '.';
+                rankHtml += `
+                    <div class="${cls}">
+                        <span class="rank-pos">${medal}</span>
+                        <span class="rank-name">${t.name}</span>
+                        <span class="rank-pts">${t.score}</span>
+                    </div>
+                `;
+            });
+            finalRank.innerHTML = rankHtml;
+
+            finalScreen.classList.remove('hidden');
+            launchConfetti();
+
+            finalBackBtn.onclick = () => {
+                finalScreen.classList.add('hidden');
+                isFinalShown = false;
+                confettiContainer.innerHTML = '';
+            };
+        }
+
+        function launchConfetti() {
+            confettiContainer.innerHTML = '';
+            const colors = ['#ffd700', '#ff6b6b', '#4ecdc4', '#ffe66d', '#ff6bff', '#6bff6b', '#6bb5ff', '#ff9f43'];
+            for (let i = 0; i < 120; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                const size = 6 + Math.random() * 10;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const left = Math.random() * 100;
+                const delay = Math.random() * 4;
+                const duration = 3 + Math.random() * 4;
+                const shape = Math.random() > 0.5 ? '50%' : '2px';
+                piece.style.cssText = `
+                    left:${left}%;
+                    width:${size}px;
+                    height:${size * (0.6 + Math.random() * 0.8)}px;
+                    background:${color};
+                    border-radius:${shape};
+                    animation-delay:${delay}s;
+                    animation-duration:${duration}s;
+                    transform:rotate(${Math.random()*360}deg);
+                `;
+                confettiContainer.appendChild(piece);
+            }
+            // Clean up after a while
+            setTimeout(() => {
+                confettiContainer.innerHTML = '';
+            }, 8000);
+        }
+
+        // ============================================================
+        //  CLOSE ALL SCREENS
+        // ============================================================
+        function closeAllScreens(save = true) {
+            if (save) saveCurrentEditor();
+            editorModal.classList.add('hidden');
+            questionScreen.classList.add('hidden');
+            finalScreen.classList.add('hidden');
+            if (timerInterval) { clearInterval(timerInterval);
+                timerInterval = null; }
+            confettiContainer.innerHTML = '';
+            isFinalShown = false;
+        }
+
+        // ============================================================
+        //  KEYBOARD SHORTCUTS
+        // ============================================================
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (!editorModal.classList.contains('hidden')) {
+                    closeEditor();
+                    e.preventDefault();
+                } else if (!questionScreen.classList.contains('hidden')) {
+                    closeQuestionScreen();
+                    e.preventDefault();
+                } else if (!finalScreen.classList.contains('hidden')) {
+                    finalScreen.classList.add('hidden');
+                    isFinalShown = false;
+                    confettiContainer.innerHTML = '';
+                    e.preventDefault();
+                }
+            }
+        });
+
+        // ============================================================
+        //  EVENT BINDINGS
+        // ============================================================
+        // Editor close/cancel
+        editorCloseBtn.addEventListener('click', closeEditor);
+        editorCancelBtn.addEventListener('click', closeEditor);
+
+        // Editor save
+        editorSaveBtn.addEventListener('click', function() {
+            saveCurrentEditor();
+            closeEditor();
+            renderAll();
+        });
+
+        // Editor image file
+        editImageFile.addEventListener('change', function(e) {
+            const file = this.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                editImageUrl.value = ev.target.result;
+                imageFileName.textContent = '📷 ' + file.name;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Auto-save on editor input (with debounce)
+        let editorSaveTimeout = null;
+        const editorInputs = [editQuestion, editOpt0, editOpt1, editOpt2, editOpt3, editCorrect, editImageUrl, editVideo];
+        editorInputs.forEach(inp => {
+            inp.addEventListener('input', function() {
+                clearTimeout(editorSaveTimeout);
+                editorSaveTimeout = setTimeout(() => {
+                    saveCurrentEditor();
+                    renderMiniGrid();
+                    renderGrid();
+                }, 400);
+            });
+        });
+        editCategory.addEventListener('change', function() {
+            saveCurrentEditor();
+            const catIdx = parseInt(this.value);
+            const valIdx = parseInt(editValue.value);
+            currentCell.catIdx = catIdx;
+            currentCell.valIdx = valIdx;
+            loadIntoEditor(catIdx, valIdx);
+            renderMiniGrid();
+        });
+        editValue.addEventListener('change', function() {
+            saveCurrentEditor();
+            const catIdx = parseInt(editCategory.value);
+            const valIdx = parseInt(this.value);
+            currentCell.catIdx = catIdx;
+            currentCell.valIdx = valIdx;
+            loadIntoEditor(catIdx, valIdx);
+            renderMiniGrid();
+        });
+
+        // Reset
+        resetBtn.addEventListener('click', function() {
+            if (confirm('Сбросить игру? Счёт обнулится, вопросы останутся.')) {
+                resetGame(true);
+            }
+        });
+
+        // Export
+        exportBtn.addEventListener('click', function() {
+            const json = exportData();
+            // Try to download as file
+            try {
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'svoya_igra_backup.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                // fallback copy
+                navigator.clipboard.writeText(json).then(() => {
+                    alert('Данные скопированы в буфер обмена как JSON');
+                }).catch(() => {
+                    prompt('Скопируйте JSON:', json);
+                });
+            }
+        });
+
+        // Import
+        importBtn.addEventListener('click', function() {
+            importFileInput.click();
+        });
+        importFileInput.addEventListener('change', function(e) {
+            const file = this.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const json = ev.target.result;
+                if (importData(json)) {
+                    alert('Импорт успешен!');
+                }
+                importFileInput.value = '';
+            };
+            reader.readAsText(file);
+        });
+
+        // Also allow import via paste
+        document.addEventListener('paste', function(e) {
+            // only if no modal is open
+            if (!editorModal.classList.contains('hidden') || !questionScreen.classList.contains('hidden')) return;
+            const text = e.clipboardData?.getData('text');
+            if (text && text.trim().startsWith('{')) {
+                if (confirm('Обнаружен JSON в буфере обмена. Импортировать?')) {
+                    if (importData(text)) {
+                        alert('Импорт успешен!');
+                    }
+                }
+            }
+        });
+
+        // ============================================================
+        //  INIT
+        // ============================================================
+        function init() {
+            loadData();
+            renderAll();
+            // Close any screens on start
+            closeAllScreens(false);
+            // Check if all played from saved state
+            if (allPlayed()) {
+                // don't auto-show final, user can see board
+            }
+            // Auto-save on window close
+            window.addEventListener('beforeunload', function() {
+                saveCurrentEditor();
+                saveData();
+            });
+            // Click outside editor to close? Only via buttons/escape
+        }
+
+        init();
+
+        console.log('🎯 Своя игра загружена!');
+        console.log('📊 Данные:', data);
+    </script>
+</body>
+</html>
